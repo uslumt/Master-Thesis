@@ -28,15 +28,19 @@ primfn(DRAM_1_3: handle, DRAM_1_4: handle, DRAM_1_5: handle) -> ()
     }
     attr [IterVar(i0_1: int32, (nullptr), "DataPar", "")] "pragma_Parallel" = 1 {
       for (kkw: int32, 0, 3) {
-        for (output_w, 0, 3) {
+        for (output_w: int32, 0, 13) {
           for (kinput_c: int32, 0, 256) {
             for (output_c: int32, 0, 384) {
-              attr [IterVar(output_h: int32, (nullptr), "DataPar", "")] "pragma_noc_copy" = "Filter_NoC_1";
-              attr [IterVar(output_h, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
-              for (output_h, 0, 3) {
-                attr [IterVar(kkh: int32, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
-                for (kkh: int32, 0, 3) {
-                  Filter_RF_1_1: Buffer(Filter_RF_1, int16, [884736], [], scope="wmma.matrix_b")[((((output_c*2304) + (output_h*768)) + (output_w*256)) + kinput_c)] = Filter_Buffer_1_1[(((output_c*9) + (kkh*3)) + kkw)]
+              for (output_h_outer: int32, floor ((13 + 3), 3) , 3) { // loop dimension is tiled by split primitive.
+                if T.likely(output_h_outer * 3 + output_h_outer < 13):
+                  attr [IterVar(output_h: int32, (nullptr), "DataPar", "")] "pragma_noc_copy" = "Filter_NoC_1";
+                  attr [IterVar(output_h, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
+                  for (output_h_inner: int32, 0, 3) {
+                    attr [IterVar(kkh: int32, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
+                    for (kkh: int32, 0, 3) {
+                      Filter_RF_1_1: Buffer(Filter_RF_1, int16, [884736], [], scope="wmma.matrix_b")[((((output_c*2304) + (output_h*768)) + (output_w*256)) + kinput_c)] = Filter_Buffer_1_1[(((output_c*9) + (kkh*3)) + kkw)]
+                    }
+                  }
                 }
               }
             }
@@ -47,26 +51,34 @@ primfn(DRAM_1_3: handle, DRAM_1_4: handle, DRAM_1_5: handle) -> ()
         for (output_w_1, 0, 13) {
           for (input_c_1: int32, 0, 256) {
             for (ioutput_c: int32, 0, 384) {
-              attr [IterVar(output_h_1: int32, (nullptr), "DataPar", "")] "pragma_noc_copy" = "Input_NoC_1";
-              attr [IterVar(output_h_1, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
-              for (output_h_1, 0, 13) {
-                attr [IterVar(ikh: int32, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
-                for (ikh: int32, 0, 3) {
-                  Input_RF_1_1: Buffer(Input_RF_1, int16, [43264], [], scope="wmma.matrix_a")[(((output_h_1*3328) + (output_w_1*256)) + input_c_1)] = Input_Buffer_1_1[(((((output_h_1*3840) + (ikh*3840)) + (output_w_1*256)) + (ikw*256)) + input_c_1)]
+              for (output_h_outer_1: int32, floor ((13 + 3), 3) , 3) { // loop dimension is tiled by split primitive.
+                if T.likely(output_h_outer_1 * 3 + output_h_outer_1 < 13):
+                  attr [IterVar(output_h_1: int32, (nullptr), "DataPar", "")] "pragma_noc_copy" = "Input_NoC_1";
+                  attr [IterVar(output_h_1, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
+                  for (output_h_inner_1: int32, 0, 3) {
+                    attr [IterVar(ikh: int32, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
+                    for (ikh: int32, 0, 3) {
+                      Input_RF_1_1: Buffer(Input_RF_1, int16, [43264], [], scope="wmma.matrix_a")[(((output_h_1*3328) + (output_w_1*256)) + input_c_1)] = Input_Buffer_1_1[(((((output_h_1*3840) + (ikh*3840)) + (output_w_1*256)) + (ikw*256)) + input_c_1)]
+                    }
+                  }
                 }
               }
             }
           }
         }
       }
-      for (output_h_2: int32, 0, 13) {
-        for (kh: int32, 0, 3) {
+      for (output_w_2: int32, 0, 13) {
+        for (kw: int32, 0, 3) {
           for (output_c_1: int32, 0, 384) {
             for (input_c_2: int32, 0, 256) {
-              attr [IterVar(output_w_2: int32, (nullptr), "DataPar", "")] "pragma_mac_compute" = "{'value': 'SystolicArray_1', 'unit': 'PE_1', 'stride': [1, 1], 'padding': (1, 1), 'pooling': '', 'pooling_window': (1, 1)}";
-              for (output_w_2, 0, 13) {
-                for (kw: int32, 0, 3) {
-                  Output_RF_1_1: Buffer(Output_RF_1, int16, [64896], [], scope="wmma.accumulator")[(((output_h_2*4992) + (output_w_2*384)) + output_c_1)] = (Output_RF_1_1[(((output_h_2*4992) + (output_w_2*384)) + output_c_1)] + (Filter_RF_1_1[((((output_c_1*2304) + (kh*768)) + (kw*256)) + input_c_2)]*Input_RF_1_1[(((((output_h_2*3328) + (kh*3328)) + (output_w_2*256)) + (kw*256)) + input_c_2)]))
+              for (output_h_outer_2: int32, floor ((13 + 3), 3) , 3) { // loop dimension is tiled by split primitive.
+                if T.likely(output_h_outer_2 * 3 + output_h_outer_2 < 13):
+                  attr [IterVar(output_w_2: int32, (nullptr), "DataPar", "")] "pragma_mac_compute" = "{'value': 'SystolicArray_1', 'unit': 'PE_1', 'stride': [1, 1], 'padding': (1, 1), 'pooling': '', 'pooling_window': (1, 1)}";
+                  for (output_h_2, 0, 3) {
+                    for (kh: int32, 0, 3) {
+                      Output_RF_1_1: Buffer(Output_RF_1, int16, [64896], [], scope="wmma.accumulator")[(((output_h_2*4992) + (output_w_2*384)) + output_c_1)] = (Output_RF_1_1[(((output_h_2*4992) + (output_w_2*384)) + output_c_1)] + (Filter_RF_1_1[((((output_c_1*2304) + (kh*768)) + (kw*256)) + input_c_2)]*Input_RF_1_1[(((((output_h_2*3328) + (kh*3328)) + (output_w_2*256)) + (kw*256)) + input_c_2)]))
+                    }
+                  }
                 }
               }
             }
@@ -79,10 +91,14 @@ primfn(DRAM_1_3: handle, DRAM_1_4: handle, DRAM_1_5: handle) -> ()
             for (output_c_2: int32, 0, 384) {
               attr [IterVar(output_h_3: int32, (nullptr), "DataPar", "")] "pragma_noc_copy" = "Output_NoC_1";
               attr [IterVar(output_h_3, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
-              for (output_h_3, 0, 13) {
-                attr [IterVar(output_w_3: int32, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
-                for (kh_1: int32, 0, 3) {
-                  Output_Buffer_1_1: Buffer(Output_Buffer_1, int16, [64896], [], scope="local")[(((output_h_3*4992) + (output_w_3*384)) + output_c_2)] = Output_RF_1_1[(((output_h_3*4992) + (output_w_3*384)) + output_c_2)]
+              for (output_h_outer_3: int32, floor ((13 + 3), 3) , 3) { // loop dimension is tiled by split primitive.
+                if T.likely(output_h_outer_3 * 3 + output_h_outer_3 < 13):
+                  for (output_h_3, 0, 3) {
+                    attr [IterVar(output_w_3: int32, (nullptr), "DataPar", "")] "pragma_unroll_NoC" = 1;
+                    for (kh_1: int32, 0, 3) {
+                      Output_Buffer_1_1: Buffer(Output_Buffer_1, int16, [64896], [], scope="local")[(((output_h_3*4992) + (output_w_3*384)) + output_c_2)] = Output_RF_1_1[(((output_h_3*4992) + (output_w_3*384)) + output_c_2)]
+                    }
+                  } 
                 }
               }
             }
